@@ -1,0 +1,64 @@
+# ============================================================================
+# Paranormal Pulse — iOS build + App Store submission (Codemagic, cloud Mac)
+# No Mac needed on your end. Codemagic runs this on their macOS machines.
+# Set up: codemagic.io → connect this repo → it auto-detects this file.
+# Before the first build you must add (in Codemagic UI):
+#   • App Store Connect API key  (integration name below: "ParanormalPulse_ASC")
+#   • iOS distribution certificate + provisioning (Codemagic can auto-manage)
+# ============================================================================
+workflows:
+  ios-paranormal-pulse:
+    name: Paranormal Pulse iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: ParanormalPulse_ASC      # <- name of your API key in Codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.paranormalpulse.app
+      vars:
+        BUNDLE_ID: "com.paranormalpulse.app"
+        XCODE_SCHEME: "App"
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install JS dependencies
+        script: npm install
+      - name: Generate the iOS project (Capacitor)
+        script: |
+          npx cap add ios || true
+          npx cap sync ios
+      - name: Set Info.plist usage strings + display name
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSMotionUsageDescription string 'Measures magnetic-field (EMF) changes during investigations.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSMotionUsageDescription 'Measures magnetic-field (EMF) changes during investigations.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Shows the live camera and thermal view during investigations.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Shows the live camera and thermal view during investigations.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Records audio for EVP review and audio anomaly detection.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription 'Records audio for EVP review and audio anomaly detection.'" "$PLIST"
+      - name: Add the native magnetometer plugin to the iOS app target
+        script: |
+          # Copies the real-EMF plugin into the generated iOS app and adds it to the build.
+          cp plugins/iOS_MagnetometerPlugin.swift ios/App/App/MagnetometerPlugin.swift
+          cp plugins/iOS_MagnetometerPlugin.m     ios/App/App/MagnetometerPlugin.m
+          # add_ios_source.rb uses the 'xcodeproj' gem to register the two files in App target
+          gem install xcodeproj >/dev/null 2>&1 || sudo gem install xcodeproj
+          ruby add_ios_source.rb
+          npx cap sync ios
+      - name: Set up signing
+        script: xcode-project use-profiles
+      - name: Build .ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true       # lands in TestFlight; promote to App Store review from App Store Connect

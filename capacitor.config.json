@@ -1,0 +1,10 @@
+{
+  "appId": "com.paranormalpulse.app",
+  "appName": "Paranormal Pulse",
+  "webDir": "www",
+  "backgroundColor": "#08080d",
+  "server": { "androidScheme": "https", "iosScheme": "https" },
+  "plugins": {
+    "SplashScreen": { "backgroundColor": "#08080d", "showSpinner": false }
+  }
+}
