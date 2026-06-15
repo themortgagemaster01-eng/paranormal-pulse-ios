@@ -43,13 +43,18 @@ workflows:
           gem install xcodeproj >/dev/null 2>&1 || sudo gem install xcodeproj
           ruby add_ios_source.rb
           npx cap sync ios
-      - name: Set up code signing (auto-create cert + profile)
+      - name: Set up code signing (create cert + profile)
         script: |
           keychain initialize
-          # Creates a fresh iOS distribution certificate + App Store provisioning
-          # profile for the bundle id if they don't exist yet, using the ASC API key.
+          # Generate a fresh private key for the distribution certificate. Without this,
+          # fetch-signing-files cannot create/save a signing certificate ("Cannot save
+          # Signing Certificates without certificate private key").
+          openssl genrsa -out /tmp/cert_key.pem 2048
+          # Create the iOS distribution certificate (using that key) + App Store
+          # provisioning profile for the bundle id, via the App Store Connect API key.
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key @file:/tmp/cert_key.pem \
             --create
           keychain add-certificates
           xcode-project use-profiles
