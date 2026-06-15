@@ -56,11 +56,18 @@ workflows:
       - name: Set up code signing (clean stale certs + create fresh)
         script: |
           keychain initialize
-          # Revoke any existing iOS distribution certificates first. The CI machine can't
-          # reuse them (their private keys are ephemeral), and stale certs break the
-          # profile match ("Did not find matching provisioning profiles") and eventually
-          # hit Apple's certificate cap. The API key has admin rights to do this.
-          app-store-connect list-certificates --type IOS_DISTRIBUTION --json 2>/dev/null | python3 -c "import sys,json;d=json.load(sys.stdin);d=d.get('data',d) if isinstance(d,dict) else d;print('\n'.join(c['id'] for c in (d or []) if isinstance(c,dict) and c.get('id')))" 2>/dev/null | while read CID; do [ -n "$CID" ] && app-store-connect delete-certificate "$CID" || true; done
+          # Wipe ALL existing distribution certs + provisioning profiles first. The CI
+          # machine can't reuse them (ephemeral keys), and stale ones break the signing
+          # match ("Did not find matching provisioning profiles"). Dedicated account, one
+          # app, so a clean slate every build is safe. `|| true` keeps cleanup non-fatal.
+          echo "=== existing distribution certificates ==="
+          app-store-connect list-certificates --type IOS_DISTRIBUTION --json | tee /tmp/c.json || echo "[]" > /tmp/c.json
+          python3 -c "import json;d=json.load(open('/tmp/c.json'));d=d.get('data',d) if isinstance(d,dict) else d;print(' '.join(x.get('id','') for x in (d or []) if isinstance(x,dict)))" > /tmp/cids.txt 2>/dev/null || true
+          for ID in $(cat /tmp/cids.txt 2>/dev/null); do echo "revoking cert $ID"; app-store-connect delete-certificate "$ID" || true; done
+          echo "=== existing provisioning profiles ==="
+          app-store-connect list-profiles --json | tee /tmp/p.json || echo "[]" > /tmp/p.json
+          python3 -c "import json;d=json.load(open('/tmp/p.json'));d=d.get('data',d) if isinstance(d,dict) else d;print(' '.join(x.get('id','') for x in (d or []) if isinstance(x,dict)))" > /tmp/pids.txt 2>/dev/null || true
+          for ID in $(cat /tmp/pids.txt 2>/dev/null); do echo "deleting profile $ID"; app-store-connect delete-profile "$ID" || true; done
           # Generate a fresh private key, then create one new distribution certificate
           # (using that key) + the App Store provisioning profile for the bundle id.
           openssl genrsa -out /tmp/cert_key.pem 2048
