@@ -60,8 +60,8 @@ workflows:
           # machine can't reuse them (ephemeral keys), and stale ones break the signing
           # match ("Did not find matching provisioning profiles"). Dedicated account, one
           # app, so a clean slate every build is safe. `|| true` keeps cleanup non-fatal.
-          echo "=== existing distribution certificates ==="
-          app-store-connect list-certificates --type IOS_DISTRIBUTION --json | tee /tmp/c.json || echo "[]" > /tmp/c.json
+          echo "=== existing certificates (all types) ==="
+          app-store-connect list-certificates --json | tee /tmp/c.json || echo "[]" > /tmp/c.json
           python3 -c "import json;d=json.load(open('/tmp/c.json'));d=d.get('data',d) if isinstance(d,dict) else d;print(' '.join(x.get('id','') for x in (d or []) if isinstance(x,dict)))" > /tmp/cids.txt 2>/dev/null || true
           for ID in $(cat /tmp/cids.txt 2>/dev/null); do echo "revoking cert $ID"; app-store-connect delete-certificate "$ID" || true; done
           echo "=== existing provisioning profiles ==="
