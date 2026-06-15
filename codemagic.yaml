@@ -1,10 +1,8 @@
 # ============================================================================
 # Paranormal Pulse — iOS build + App Store submission (Codemagic, cloud Mac)
 # No Mac needed on your end. Codemagic runs this on their macOS machines.
-# Set up: codemagic.io → connect this repo → it auto-detects this file.
-# Before the first build you must add (in Codemagic UI):
-#   • App Store Connect API key  (integration name below: "ParanormalPulse_ASC")
-#   • iOS distribution certificate + provisioning (Codemagic can auto-manage)
+# Automatic code signing: creates the distribution certificate + provisioning
+# profile on the fly from the App Store Connect API key (integration below).
 # ============================================================================
 workflows:
   ios-paranormal-pulse:
@@ -14,9 +12,6 @@ workflows:
     integrations:
       app_store_connect: ParanormalPulse_ASC      # <- name of your API key in Codemagic
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.paranormalpulse.app
       vars:
         BUNDLE_ID: "com.paranormalpulse.app"
         XCODE_SCHEME: "App"
@@ -48,8 +43,16 @@ workflows:
           gem install xcodeproj >/dev/null 2>&1 || sudo gem install xcodeproj
           ruby add_ios_source.rb
           npx cap sync ios
-      - name: Set up signing
-        script: xcode-project use-profiles
+      - name: Set up code signing (auto-create cert + profile)
+        script: |
+          keychain initialize
+          # Creates a fresh iOS distribution certificate + App Store provisioning
+          # profile for the bundle id if they don't exist yet, using the ASC API key.
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build .ipa
         script: |
           xcode-project build-ipa \
