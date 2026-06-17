@@ -53,6 +53,22 @@ workflows:
           gem install xcodeproj >/dev/null 2>&1 || sudo gem install xcodeproj
           ruby add_ios_source.rb
           npx cap sync ios
+      - name: Set the app icon (Paranormal Pulse pulse icon)
+        script: |
+          # Inject the real app icon into the generated iOS asset catalog.
+          # Capacitor's `cap add ios` ships a placeholder/default icon; this replaces it
+          # with app-icon-1024.png (1024x1024, opaque, square) from the repo root.
+          ICONSET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          echo "=== AppIcon.appiconset BEFORE ==="
+          ls -la "$ICONSET" || true
+          cat "$ICONSET/Contents.json" 2>/dev/null || true
+          # Overwrite every png in the iconset with our 1024 marketing icon.
+          # (Capacitor 6/7 uses a single 1024 'ios-marketing' icon; copying to all is safe.)
+          for f in "$ICONSET"/*.png; do cp app-icon-1024.png "$f" && echo "replaced $f"; done
+          # If the set was empty for some reason, drop the icon in under the standard name.
+          [ -e "$ICONSET/AppIcon-512@2x.png" ] || cp app-icon-1024.png "$ICONSET/AppIcon-512@2x.png"
+          echo "=== AppIcon.appiconset AFTER ==="
+          ls -la "$ICONSET"
       - name: Set up code signing (clean stale certs + create fresh)
         script: |
           keychain initialize
