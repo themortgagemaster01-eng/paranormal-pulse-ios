@@ -1048,11 +1048,11 @@ function metrics(){
   emfWin.push(S.current); if(emfWin.length>25) emfWin.shift();
   const mean=emfWin.reduce((a,b)=>a+b,0)/emfWin.length; let varr=0; emfWin.forEach(v=>varr+=(v-mean)**2);
   const sd=Math.sqrt(varr/emfWin.length);
-  const emfN=Math.min(1,sd/18);
-  const audioN=S.soundDb==null?0:Math.min(1,Math.max(0,(S.soundDb-34)/45));
+  const emfN=Math.min(1,sd/30);
+  const audioN=S.soundDb==null?0:Math.min(1,Math.max(0,(S.soundDb-44)/45));
   const motionN=Math.min(1,Math.max(S.motion,S.gyro||0,S.presence/100));
   // Resonance Fusion: index rises further when multiple independent sensors agree
-  const agree=(emfN>0.25?1:0)+(audioN>0.25?1:0)+(motionN>0.25?1:0);
+  const agree=(emfN>0.4?1:0)+(audioN>0.4?1:0)+(motionN>0.4?1:0);
   let idx=0.45*emfN+0.35*audioN+0.20*motionN;
   if(agree>=2) idx*=1.15;
   const rawAct=Math.min(100,idx*100);
@@ -1060,10 +1060,10 @@ function metrics(){
   S._actEma=(S._actEma==null)?rawAct:S._actEma+(rawAct-S._actEma)*0.10;
   S.activity=Math.round(S._actEma);
   const now=Date.now(), base=S.baseline==null?30:S.baseline, dev=base>0?(S.current-base)/base*100:0;
-  if(dev>=15) S.spikeT=now; if(audioN>0.55) S.audioT=now; if(motionN>0.45) S.motionT=now;
+  if(dev>=30) S.spikeT=now; if(audioN>0.7) S.audioT=now; if(motionN>0.6) S.motionT=now;
   const W=5000, e=now-S.spikeT<W, a=now-S.audioT<W, m=now-S.motionT<W; S.corrFlags={e,a,m};
   let conf="—"; if(e&&a&&m) conf="HIGH"; else if(e&&a) conf="MEDIUM"; else if(e||a||m) conf="LOW";
-  if(S.armed&&(e&&a)&&conf!==S.lastConf&&(conf==="HIGH"||conf==="MEDIUM")&&now-S.lastCorrT>4000){
+  if(S.armed&&(e&&a)&&conf!==S.lastConf&&(conf==="HIGH"||conf==="MEDIUM")&&now-S.lastCorrT>9000){
     addEntry(conf==="HIGH"?"HIGH":"MEDIUM","Correlated "+anomalyClass(conf)+" event — EMF + audio"+(m?" + motion":"")+" within 5s · "+conf+" confidence");
     showCorrBanner("⚡ CORRELATED EVENT — EMF + Audio"+(m?" + Motion":"")+" · "+conf);
     S.lastCorrT=now;
