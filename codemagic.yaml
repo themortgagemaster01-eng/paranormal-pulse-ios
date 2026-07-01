@@ -28,12 +28,12 @@ workflows:
       - name: Set Info.plist usage strings + display name
         script: |
           PLIST="ios/App/App/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :NSMotionUsageDescription string 'Measures magnetic-field (EMF) changes during investigations.'" "$PLIST" 2>/dev/null || \
-          /usr/libexec/PlistBuddy -c "Set :NSMotionUsageDescription 'Measures magnetic-field (EMF) changes during investigations.'" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Shows the live camera and thermal view during investigations.'" "$PLIST" 2>/dev/null || \
-          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Shows the live camera and thermal view during investigations.'" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Records audio for EVP review and audio anomaly detection.'" "$PLIST" 2>/dev/null || \
-          /usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription 'Records audio for EVP review and audio anomaly detection.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSMotionUsageDescription string 'Uses motion sensors to drive playful in-game effects. For entertainment only.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSMotionUsageDescription 'Uses motion sensors to drive playful in-game effects. For entertainment only.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Shows the live camera and playful color filters in the game. For entertainment only.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Shows the live camera and playful color filters in the game. For entertainment only.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Records and plays back audio clips as part of the game. For entertainment only.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription 'Records and plays back audio clips as part of the game. For entertainment only.'" "$PLIST"
           # App only uses standard HTTPS encryption -> exempt. Declaring it here auto-skips
           # the TestFlight/App Store "export compliance" prompt on every build.
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || \
